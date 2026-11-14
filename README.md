@@ -19,8 +19,7 @@
 ![Uygulama Önizleme GIF](./public/screengifs.gif)
 
 ### 📸 Ekran Görüntüsü
-
-[Ekran Görüntüsü](./public/screenshot.png) 
+![Ekran Görüntüsü](./public/screenshot.jpeg)
 
 ## 🛠️ Kullanılan Teknolojiler ve Kütüphaneler
 
