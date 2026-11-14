@@ -20,7 +20,7 @@
 
 ### 📸 Ekran Görüntüsü
 
-[Ekran Görüntüsü](./public/screenshot.jpg) 
+[Ekran Görüntüsü](./public/screenshot.png) 
 
 ## 🛠️ Kullanılan Teknolojiler ve Kütüphaneler
 
