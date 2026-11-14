@@ -8,7 +8,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Booking } from "@/models/Booking";
 import { Vehicle } from "@/models/Vehicle";
 import { getVehicleImage } from "@/lib/vehicle-images";
-import { verifyAndConfirmStripeBooking } from "@/lib/stripe";
+import { verifyAndConfirmStripeBooking } from "@/lib/booking-payments";
 
 interface BookingSuccessPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -109,6 +109,12 @@ export default async function BookingSuccessPage({ searchParams }: BookingSucces
               {verificationError || "Rezervasyon onaylanamadı."}
             </p>
             <div className="flex items-center gap-3 pt-2">
+              <Link
+                href="/bookings"
+                className="px-6 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface text-sm font-bold hover:bg-surface-container-low transition-all"
+              >
+                Rezervasyonlarım
+              </Link>
               <Link
                 href="/vehicles"
                 className="px-6 py-2.5 rounded-xl bg-primary-container text-on-primary text-sm font-bold hover:bg-secondary-container transition-all"
@@ -269,10 +275,10 @@ export default async function BookingSuccessPage({ searchParams }: BookingSucces
                 Araç Filosuna Göz At
               </Link>
               <Link
-                href="/"
+                href="/bookings"
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-primary-container text-on-primary hover:bg-secondary-container text-xs sm:text-sm font-bold text-center shadow-md hover:shadow-lg transition-all"
               >
-                Ana Sayfaya Dön
+                Rezervasyonlarıma Git
               </Link>
             </div>
           </div>

@@ -38,7 +38,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // 2. Protect /booking routes from unauthenticated users
+  // 2. Protect /booking/* and /bookings routes from unauthenticated users
   if (!isAuthenticated && pathname.startsWith("/booking")) {
     const callbackUrl = `${pathname}${search}`;
     const loginUrl = new URL("/login", request.url);
@@ -50,6 +50,13 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/login/:path*", "/register", "/register/:path*", "/booking/:path*"],
+  matcher: [
+    "/login",
+    "/login/:path*",
+    "/register",
+    "/register/:path*",
+    "/booking/:path*",
+    "/bookings",
+  ],
 };
 

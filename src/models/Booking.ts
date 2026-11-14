@@ -6,11 +6,25 @@ export type BookingStatus =
   | "tamamlandi"
   | "iptal";
 
-export type PaymentStatus =
-  | "beklemede"
-  | "odendi"
-  | "basarisiz"
-  | "iade_edildi";
+/**
+ * Payment lifecycle (Turkish values kept for backward compatibility with existing data):
+ * - beklemede     → pending   (Checkout session created, awaiting payment)
+ * - odendi        → paid      (checkout.session.completed / async_payment_succeeded)
+ * - basarisiz     → failed    (payment_intent.payment_failed / async_payment_failed)
+ * - suresi_doldu  → expired   (30-min payment window elapsed / checkout.session.expired)
+ * - iptal_edildi  → cancelled (user cancelled or superseded by a newer checkout)
+ * - iade_edildi   → refunded  (charge.refunded)
+ */
+export const PAYMENT_STATUSES = [
+  "beklemede",
+  "odendi",
+  "basarisiz",
+  "suresi_doldu",
+  "iptal_edildi",
+  "iade_edildi",
+] as const;
+
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export interface IBooking {
   _id?: string | mongoose.Types.ObjectId;
@@ -45,14 +59,22 @@ export interface IBooking {
   // Reservation Lifecycle Status
   bookingStatus: BookingStatus;
 
-  // =========================================================================
-  // Stripe Payment Integration (Placeholders for Future Implementation)
-  // TODO: Stripe Integration - Fields populated when Stripe Checkout session is created/completed
-  // =========================================================================
+  // Stripe Payment Integration
   paymentStatus: PaymentStatus;
   stripeSessionId?: string;
   stripePaymentIntentId?: string;
   stripeCustomerId?: string;
+  stripeCheckoutUrl?: string;
+  paymentFailureReason?: string;
+  lastStripeEventId?: string;
+
+  // Payment lifecycle timestamps
+  checkoutExpiresAt?: Date; // 30-minute Stripe Checkout payment window
+  paidAt?: Date;
+  paymentFailedAt?: Date;
+  expiredAt?: Date;
+  cancelledAt?: Date;
+  refundedAt?: Date;
 
   createdAt?: Date;
   updatedAt?: Date;
@@ -176,10 +198,10 @@ const BookingSchema = new Schema<IBooking>(
       index: true,
     },
 
-    // Stripe Payment Fields (Placeholder)
+    // Stripe Payment Fields
     paymentStatus: {
       type: String,
-      enum: ["beklemede", "odendi", "basarisiz", "iade_edildi"],
+      enum: PAYMENT_STATUSES,
       default: "beklemede",
       index: true,
     },
@@ -190,16 +212,43 @@ const BookingSchema = new Schema<IBooking>(
     },
     stripePaymentIntentId: {
       type: String,
+      index: true,
       sparse: true,
     },
     stripeCustomerId: {
       type: String,
     },
+    stripeCheckoutUrl: {
+      type: String,
+    },
+    paymentFailureReason: {
+      type: String,
+      trim: true,
+    },
+    lastStripeEventId: {
+      type: String,
+    },
+
+    // Payment lifecycle timestamps
+    checkoutExpiresAt: { type: Date, index: true },
+    paidAt: { type: Date },
+    paymentFailedAt: { type: Date },
+    expiredAt: { type: Date },
+    cancelledAt: { type: Date },
+    refundedAt: { type: Date },
   },
   {
     timestamps: true,
   }
 );
+
+BookingSchema.index({ user: 1, createdAt: -1 });
+
+// In development, HMR keeps a stale compiled model (with the old enum) on the
+// mongoose singleton. Re-register so schema changes take effect immediately.
+if (process.env.NODE_ENV !== "production" && mongoose.models.Booking) {
+  mongoose.deleteModel("Booking");
+}
 
 export const Booking: Model<IBooking> =
   mongoose.models.Booking || mongoose.model<IBooking>("Booking", BookingSchema);

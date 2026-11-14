@@ -130,6 +130,16 @@ export async function Navbar() {
                 </div>
 
                 <Link
+                  href="/bookings"
+                  className="flex items-center gap-2 px-4 py-2.5 font-body-sm text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">
+                    receipt_long
+                  </span>
+                  Rezervasyonlarım
+                </Link>
+
+                <Link
                   href="/vehicles"
                   className="flex items-center gap-2 px-4 py-2.5 font-body-sm text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors"
                 >
@@ -232,6 +242,16 @@ export async function Navbar() {
                         </span>
                       </div>
                     </div>
+
+                    <Link
+                      href="/bookings"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold text-on-surface border border-outline-variant/40 hover:bg-surface-container-low transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        receipt_long
+                      </span>
+                      Rezervasyonlarım
+                    </Link>
 
                     <form action={handleSignOut}>
                       <button

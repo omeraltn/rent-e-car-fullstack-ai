@@ -12,6 +12,11 @@ import {
   getStripe,
   syncVehicleStripeProduct,
 } from "@/lib/stripe";
+import {
+  CHECKOUT_PAYMENT_WINDOW_MS,
+  buildBookingFieldsFromSession,
+  supersedeOpenCheckouts,
+} from "@/lib/booking-payments";
 
 /**
  * POST /api/checkout
@@ -184,9 +189,10 @@ export async function POST(req: NextRequest) {
     });
 
     // 4. Derive deterministic idempotency key (5-minute bucket + exact reservation parameters)
-    const timeBucket = Math.floor(Date.now() / (5 * 60 * 1000));
+    const BUCKET_MS = 5 * 60 * 1000;
+    const timeBucket = Math.floor(Date.now() / BUCKET_MS);
     const idempotencyPayload = [
-      "dynamic_pm_v2",
+      "dynamic_pm_v3",
       session.user.id,
       String(vehicle._id),
       resolvedPickupLocation,
@@ -201,43 +207,102 @@ export async function POST(req: NextRequest) {
       .update(idempotencyPayload)
       .digest("hex")}`;
 
+    // Stripe requires expires_at >= 30 minutes and deterministic per idempotency bucket.
+    const stripeExpiresAt = Math.floor(((timeBucket + 1) * BUCKET_MS) / 1000) + 30 * 60;
+
+    const checkoutMetadata = {
+      userId: session.user.id,
+      vehicleId: String(vehicle._id),
+      vehicleSlug: vehicle.slug,
+      pickupLocation: resolvedPickupLocation,
+      dropoffLocation: resolvedDropoffLocation,
+      pickupDate: String(pickupDate),
+      dropoffDate: String(dropoffDate),
+      pickupTime: String(pickupTime),
+      dropoffTime: String(dropoffTime),
+      totalDays: String(totalDays),
+      pricePerDay: String(synced.dailyRate),
+      addOns: selectedAddOns.map((a) => a.id).join(","),
+      addOnsTotal: (addOnsTotalCents / 100).toFixed(2),
+      subtotal: (subtotalCents / 100).toFixed(2),
+      taxAmount: (taxCents / 100).toFixed(2),
+      totalPrice: (totalCents / 100).toFixed(2),
+      renterName: user.name || session.user.name || "",
+      renterEmail: user.email || session.user.email || "",
+    };
+
     const stripe = getStripe();
-    const checkoutSession = await stripe.checkout.sessions.create(
-      {
-        mode: "payment",
-        customer_email: user.email || session.user.email || undefined,
-        line_items: lineItems,
-        success_url: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/booking/${vehicle.slug}?${cancelParams.toString()}`,
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      mode: "payment",
+      customer_email: user.email || session.user.email || undefined,
+      line_items: lineItems,
+      expires_at: stripeExpiresAt,
+      success_url: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/booking/${vehicle.slug}?${cancelParams.toString()}`,
+      metadata: checkoutMetadata,
+      payment_intent_data: {
         metadata: {
           userId: session.user.id,
           vehicleId: String(vehicle._id),
-          vehicleSlug: vehicle.slug,
-          pickupLocation: resolvedPickupLocation,
-          dropoffLocation: resolvedDropoffLocation,
-          pickupDate: String(pickupDate),
-          dropoffDate: String(dropoffDate),
-          pickupTime: String(pickupTime),
-          dropoffTime: String(dropoffTime),
-          totalDays: String(totalDays),
-          pricePerDay: String(synced.dailyRate),
-          addOns: selectedAddOns.map((a) => a.id).join(","),
-          addOnsTotal: (addOnsTotalCents / 100).toFixed(2),
-          subtotal: (subtotalCents / 100).toFixed(2),
-          taxAmount: (taxCents / 100).toFixed(2),
-          totalPrice: (totalCents / 100).toFixed(2),
-          renterName: user.name || session.user.name || "",
-          renterEmail: user.email || session.user.email || "",
         },
       },
-      { idempotencyKey }
-    );
+    };
+
+    let checkoutSession = await stripe.checkout.sessions.create(sessionParams, {
+      idempotencyKey,
+    });
+
+    // An idempotent replay may hand back a session we already closed (cancelled / expired /
+    // failed-then-expired). In that case, open a brand-new session instead.
+    const replayedBooking = await Booking.findOne({ stripeSessionId: checkoutSession.id })
+      .select("paymentStatus")
+      .lean();
+    if (replayedBooking && replayedBooking.paymentStatus !== "beklemede") {
+      checkoutSession = await stripe.checkout.sessions.create(sessionParams, {
+        idempotencyKey: `${idempotencyKey}_r${Date.now()}`,
+      });
+    }
 
     if (!checkoutSession.url) {
       return NextResponse.json(
         { error: "Stripe ödeme oturumu URL'si oluşturulamadı." },
         { status: 500 }
       );
+    }
+
+    // 5. Persist a PENDING booking linked to the Stripe session. The webhook moves it to
+    //    paid / failed / expired. $setOnInsert keeps idempotent retries from resetting it.
+    const bookingFields = buildBookingFieldsFromSession(checkoutSession);
+    if (bookingFields) {
+      try {
+        await Booking.updateOne(
+          { stripeSessionId: checkoutSession.id },
+          {
+            $setOnInsert: {
+              ...bookingFields,
+              pickupDate: pDate,
+              dropoffDate: dDate,
+              bookingStatus: "beklemede",
+              paymentStatus: "beklemede",
+              stripeCheckoutUrl: checkoutSession.url,
+              checkoutExpiresAt: new Date(Date.now() + CHECKOUT_PAYMENT_WINDOW_MS),
+            },
+          },
+          { upsert: true }
+        );
+      } catch (err) {
+        // Non-fatal: the webhook can still create the booking from session metadata.
+        console.error("Pending booking creation failed:", err);
+      }
+
+      // Cancel any older open checkout for the same vehicle & dates.
+      supersedeOpenCheckouts({
+        userId: session.user.id,
+        vehicleId: String(vehicle._id),
+        pickupDate: pDate,
+        dropoffDate: dDate,
+        keepSessionId: checkoutSession.id,
+      }).catch((err) => console.error("Superseding open checkouts failed:", err));
     }
 
     return NextResponse.json({
