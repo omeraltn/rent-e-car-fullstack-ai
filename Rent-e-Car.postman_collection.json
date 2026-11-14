@@ -1,0 +1,534 @@
+{
+  "info": {
+    "_postman_id": "rent-e-car-api-collection",
+    "name": "Rent-e-Car (Morent) API",
+    "description": "Postman collection for testing the Rent-e-Car (Morent) Full-Stack Next.js 16 Application Endpoints (Authentication, Vehicle Catalog with Turkish filters & sorting, and Vehicle Details).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "Endpoints for user registration and NextAuth session handling",
+      "item": [
+        {
+          "name": "1. Register New User (Kayıt Ol)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Can Demir\",\n  \"email\": \"can.demir@example.com\",\n  \"password\": \"GuvenliSifre123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registers a new user into MongoDB with bcrypt-hashed password and default role 'user'."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get CSRF Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/csrf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "csrf"]
+            },
+            "description": "Fetches the NextAuth CSRF token required for manual credential logins via HTTP POST."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Credentials Sign-In (Giriş Yap)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "email",
+                  "value": "admin@rent-e-car.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "AdminPass123!",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect",
+                  "value": "false",
+                  "type": "text"
+                },
+                {
+                  "key": "callbackUrl",
+                  "value": "{{baseUrl}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/callback/credentials",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "callback", "credentials"]
+            },
+            "description": "Authenticates a user via NextAuth credentials provider."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Get Current Session (Aktif Oturum)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "session"]
+            },
+            "description": "Returns current logged in user profile from JWT session cookie."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vehicles Catalog",
+      "description": "Endpoints for querying, filtering, and sorting vehicles",
+      "item": [
+        {
+          "name": "0. List Entire Fleet (Tüm Araçlar - Filtresiz & Sayfalamasız)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"]
+            },
+            "description": "Fetches the complete fleet of all vehicles with zero filters and zero limits by default."
+          },
+          "response": []
+        },
+        {
+          "name": "0. Dedicated GetAll Endpoint (GET /api/vehicles/all)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "all"]
+            },
+            "description": "Dedicated endpoint returning all vehicles in the database without any pagination or filter requirements."
+          },
+          "response": []
+        },
+        {
+          "name": "1. List Vehicles with Pagination (Sayfalı Araç Listesi)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?page=1&limit=9",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "9"
+                }
+              ]
+            },
+            "description": "Fetches paginated list of vehicles with metadata (total, totalPages, hasNextPage, etc.)."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Filter by Category (Kategori: Spor, SUV)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?category=Spor,SUV",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Spor,SUV"
+                }
+              ]
+            },
+            "description": "Filters vehicles belonging to Turkish categories (e.g., 'Spor', 'SUV', 'Lüks', 'Sedan', 'Coupe', 'Elektrik')."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Filter by Brand (Marka: Nissan, Porsche)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?brand=Nissan,Porsche",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "brand",
+                  "value": "Nissan,Porsche"
+                }
+              ]
+            },
+            "description": "Filters vehicles matching specified brands."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Filter by Transmission (Vites: Otomatik)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?transmission=Otomatik",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "transmission",
+                  "value": "Otomatik"
+                }
+              ]
+            },
+            "description": "Filters by Turkish transmission type ('Otomatik' or 'Manuel')."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Filter by Fuel Type (Yakıt: Benzin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?fuelType=Benzin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "fuelType",
+                  "value": "Benzin"
+                }
+              ]
+            },
+            "description": "Filters by Turkish fuel type ('Benzin', 'Dizel', 'Elektrik', 'Hibrit')."
+          },
+          "response": []
+        },
+        {
+          "name": "6. Filter by Price Range ($70 - $100 / gün)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?minPrice=70&maxPrice=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "70"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Filters vehicles within a daily price range."
+          },
+          "response": []
+        },
+        {
+          "name": "7. Filter by Seats (Koltuk Sayısı: 2 veya 5)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?seats=2,5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "seats",
+                  "value": "2,5"
+                }
+              ]
+            },
+            "description": "Filters vehicles by seat capacity."
+          },
+          "response": []
+        },
+        {
+          "name": "8. Filter by Availability Status (Müsait Araçlar)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?availability=musait",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "availability",
+                  "value": "musait"
+                }
+              ]
+            },
+            "description": "Filters vehicles currently available for booking ('musait')."
+          },
+          "response": []
+        },
+        {
+          "name": "9. Search by Location or Name (Arama: Kadıköy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?search=Kadıköy",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Kadıköy"
+                }
+              ]
+            },
+            "description": "Performs case-insensitive regex search across name, brand, model, and Turkish locations."
+          },
+          "response": []
+        },
+        {
+          "name": "10. Sort: Price Low to High (Fiyat: Artan)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?sort=price_asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "price_asc"
+                }
+              ]
+            },
+            "description": "Sorts vehicles by price ascending."
+          },
+          "response": []
+        },
+        {
+          "name": "11. Sort: Rating High to Low (Puan: Azalan)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?sort=rating_desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "rating_desc"
+                }
+              ]
+            },
+            "description": "Sorts vehicles by rating and review count descending."
+          },
+          "response": []
+        },
+        {
+          "name": "12. Get Featured Popular Vehicles (Popüler Araçlar)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?featured=true&limit=4",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "featured",
+                  "value": "true"
+                },
+                {
+                  "key": "limit",
+                  "value": "4"
+                }
+              ]
+            },
+            "description": "Fetches top featured vehicles for home hero & popular cards carousel."
+          },
+          "response": []
+        },
+        {
+          "name": "13. Get Recommended Vehicles (Önerilen Araçlar)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?recommended=true&limit=8",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                {
+                  "key": "recommended",
+                  "value": "true"
+                },
+                {
+                  "key": "limit",
+                  "value": "8"
+                }
+              ]
+            },
+            "description": "Fetches recommended vehicles for the home page catalog grid."
+          },
+          "response": []
+        },
+        {
+          "name": "14. Get Single Vehicle Details by Slug (Nissan GT-R Nismo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/nissan-gt-r-nismo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "nissan-gt-r-nismo"]
+            },
+            "description": "Fetches complete technical specs, gallery references, and pricing for Nissan GT-R Nismo."
+          },
+          "response": []
+        },
+        {
+          "name": "15. Get Single Vehicle Details by Slug (Koenigsegg Jesko)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/koenigsegg-jesko",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "koenigsegg-jesko"]
+            },
+            "description": "Fetches complete technical specs, gallery references, and pricing for Koenigsegg Jesko."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bookings & Reservations",
+      "description": "Endpoints for creating vehicle reservations and fetching user bookings with Stripe handoff entry points",
+      "item": [
+        {
+          "name": "1. Create Booking (POST /api/bookings)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleSlug\": \"nissan-gt-r\",\n  \"pickupLocation\": \"İstanbul, Kadıköy Hub\",\n  \"dropoffLocation\": \"İstanbul, Kadıköy Hub\",\n  \"pickupDate\": \"2026-11-15\",\n  \"dropoffDate\": \"2026-11-19\",\n  \"pickupTime\": \"10:00\",\n  \"dropoffTime\": \"10:00\",\n  \"renterName\": \"Can Demir\",\n  \"renterEmail\": \"can.demir@example.com\",\n  \"renterPhone\": \"(532) 123 45 67\",\n  \"renterCity\": \"İstanbul\",\n  \"renterAddress\": \"Moda Cd. No:44\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Creates a new vehicle booking in MongoDB with bookingStatus='beklemede' and paymentStatus='beklemede'. Contains clean TODO: Stripe Integration hook."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get User Bookings (GET /api/bookings)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Fetches all reservations associated with the authenticated user session."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Database Management",
+      "description": "Endpoints to seed or reset the database with vehicles and users",
+      "item": [
+        {
+          "name": "Seed / Reset Database (POST /api/seed)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/seed",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seed"]
+            },
+            "description": "Populates or resets the MongoDB database with 12 Turkish localized vehicles, default users, and sample booking."
+          },
+          "response": []
+        },
+        {
+          "name": "Seed / Reset Database (GET /api/seed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/seed",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "seed"]
+            },
+            "description": "Allows triggering database seed directly from browser or simple GET request."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+

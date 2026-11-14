@@ -1,5 +1,17 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Testing Endpoints with Postman
+
+A complete Postman Collection is provided in the root directory: [`Rent-e-Car.postman_collection.json`](./Rent-e-Car.postman_collection.json).
+
+### How to use:
+1. Open **Postman** and click **Import**.
+2. Select `Rent-e-Car.postman_collection.json`.
+3. The collection includes pre-configured folders:
+   - **Authentication:** Registration, CSRF Token, Credentials Login, and Session checks.
+   - **Vehicles Catalog:** Paginated listing, Turkish category/transmission/fuel-type filtering, price range, seat capacity, search by Turkish location, sorting, and vehicle detail lookups by slug.
+4. Default variable `{{baseUrl}}` is set to `http://localhost:3000`.
+
 ## Getting Started
 
 First, run the development server:
