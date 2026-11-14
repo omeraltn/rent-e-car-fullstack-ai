@@ -15,12 +15,10 @@
 
 ## 🖼️ Proje Önizlemesi (GIF & Ekran Görüntüleri)
 
-### 🎬 Uygulama Akışı (GIF)
-> *(Uygulama içi araç seçimi, rezervasyon ve canlı Stripe ödeme akışı)*
-
+### 🎬 GIF
 ![Uygulama Önizleme GIF](./public/screengifs.gif)
 
-### 📸 Ekran Görüntüleri
+### 📸 Ekran Görüntüsü
 
 [Ekran Görüntüsü](./public/screenshot.jpg) 
 
